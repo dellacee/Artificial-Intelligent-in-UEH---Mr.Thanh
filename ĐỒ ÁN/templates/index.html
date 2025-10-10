@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSP Solver - Interactive Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            gap: 0;
+            border: 2px solid #2d6b3d;
+        }
+
+        .sidebar {
+            width: 400px;
+            background: #ffffff;
+            border-right: 2px solid #2d6b3d;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            background: #2d6b3d;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid #2d6b3d;
+        }
+
+        .sidebar-header h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .section {
+            border-bottom: 2px solid #2d6b3d;
+            padding: 15px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2d6b3d;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .city-list {
+            background: #fff;
+            border: 1px solid #2d6b3d;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .city-item {
+            background: #fff;
+            padding: 10px;
+            margin-bottom: 5px;
+            border: 1px solid #2d6b3d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .city-item:hover {
+            background: #f0f0f0;
+        }
+
+        .city-item.highlighted {
+            background: #2d6b3d;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .city-item.highlighted .city-coords {
+            color: #ccc;
+        }
+
+        .city-name {
+            font-weight: bold;
+            color: #2d6b3d;
+            font-size: 13px;
+        }
+
+        .city-item.highlighted .city-name {
+            color: #fff;
+        }
+
+        .city-coords {
+            font-size: 10px;
+            color: #666;
+        }
+
+        .delete-btn {
+            background: #2d6b3d;
+            color: #fff;
+            border: 1px solid #2d6b3d;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .delete-btn:hover {
+            background: #fff;
+            color: #2d6b3d;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #2d6b3d;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: #2d6b3d;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #fff;
+            color: #2d6b3d;
+        }
+
+        .btn-secondary {
+            background: #fff;
+            color: #2d6b3d;
+        }
+
+        .btn-secondary:hover {
+            background: #2d6b3d;
+            color: #fff;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .calculation-steps {
+            border: 1px solid #2d6b3d;
+            padding: 15px;
+            background: #fff;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .step-item {
+            padding: 8px 0;
+            border-bottom: 1px dashed #ccc;
+        }
+
+        .step-item:last-child {
+            border-bottom: none;
+        }
+
+        .step-item.active {
+            background: #2d6b3d;
+            color: #fff;
+            padding: 8px;
+            margin: 0 -15px;
+            padding-left: 15px;
+            padding-right: 15px;
+        }
+
+        .step-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .step-candidates {
+            padding-left: 15px;
+            color: #666;
+        }
+
+        .step-item.active .step-candidates {
+            color: #ccc;
+        }
+
+        .step-chosen {
+            color: #2d6b3d;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .step-item.active .step-chosen {
+            color: #fff;
+        }
+
+        .result-box {
+            background: #fff;
+            border: 2px solid #2d6b3d;
+            padding: 15px;
+            margin-top: 0;
+            display: none;
+        }
+
+        .result-box.show {
+            display: block;
+        }
+
+        .result-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2d6b3d;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .distance {
+            font-size: 36px;
+            font-weight: bold;
+            color: #2d6b3d;
+            text-align: center;
+            margin: 15px 0;
+            border: 2px solid #2d6b3d;
+            padding: 15px;
+        }
+
+        .route-steps {
+            background: #fff;
+            border: 1px solid #2d6b3d;
+            padding: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .route-step {
+            padding: 8px;
+            margin-bottom: 5px;
+            background: #fff;
+            border: 1px solid #2d6b3d;
+            font-size: 12px;
+        }
+
+        .route-step.active {
+            background: #2d6b3d;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .map-container {
+            flex: 1;
+            background: #fff;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .status-message {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            border: 2px solid #2d6b3d;
+            padding: 10px 20px;
+            z-index: 1000;
+            display: none;
+            font-size: 12px;
+            font-weight: bold;
+            color: #2d6b3d;
+            text-transform: uppercase;
+        }
+
+        .status-message.show {
+            display: block;
+        }
+
+        .map-instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            border: 2px solid #2d6b3d;
+            padding: 10px 20px;
+            z-index: 1000;
+            font-size: 12px;
+            color: #2d6b3d;
+        }
+
+        .spinner {
+            border: 2px solid #fff;
+            border-top: 2px solid #2d6b3d;
+            width: 15px;
+            height: 15px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #fff;
+            border-left: 1px solid #2d6b3d;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #2d6b3d;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-route"></i> TSP Solver</h1>
+                <p>Traveling Salesman Problem với Greedy Best-First Search</p>
+            </div>
+            
+            <div class="sidebar-content">
+                <div class="section">
+                    <div class="section-title">
+                        <i class="fas fa-map-marker-alt"></i>
+                        Địa điểm (<span id="city-count">5</span>)
+                    </div>
+                    <div class="city-list" id="city-list">
+                        <!-- Cities will be loaded here -->
+                    </div>
+                </div>
+
+                <div class="section">
+                    <button class="btn btn-primary" id="solve-btn" onclick="solveTSP()">
+                        [RUN] GIẢI BÀI TOÁN
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetAll()">
+                        [RESET] ĐẶT LẠI
+                    </button>
+                </div>
+
+                <div class="section" id="calculation-section" style="display: none;">
+                    <div class="section-title">QUÁ TRÌNH TÍNH TOÁN</div>
+                    <div class="calculation-steps" id="calculation-steps">
+                        <!-- Calculation steps will be shown here -->
+                    </div>
+                </div>
+
+                <div class="section" id="result-section" style="display: none;">
+                    <div class="section-title">KẾT QUẢ CUỐI CÙNG</div>
+                    <div class="distance" id="total-distance">0 km</div>
+                    <div class="route-steps" id="route-steps">
+                        <!-- Route steps will be shown here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div class="status-message" id="status-message">Đang tính toán...</div>
+            
+            <div class="map-instructions">
+                [INFO] Click trên bản đồ để thêm địa điểm mới
+            </div>
+            
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map;
+        let markers = {};
+        let routeLine = null;
+        let currentStepIndex = 0;
+        let animationInterval = null;
+
+        // Khởi tạo bản đồ
+        function initMap() {
+            map = L.map('map').setView([16.0, 107.0], 6);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            // Click vào bản đồ để thêm địa điểm
+            map.on('click', function(e) {
+                const lat = e.latlng.lat.toFixed(4);
+                const lng = e.latlng.lng.toFixed(4);
+                const cityName = prompt(`Thêm địa điểm mới tại (${lat}, ${lng})\n\nNhập tên địa điểm:`);
+                
+                if (cityName && cityName.trim()) {
+                    addCity(cityName.trim(), lat, lng);
+                }
+            });
+
+            // Load cities ban đầu
+            loadCities();
+        }
+
+        // Load danh sách thành phố
+        async function loadCities() {
+            try {
+                const response = await fetch('/api/cities');
+                const cities = await response.json();
+                
+                // Clear markers
+                Object.values(markers).forEach(marker => map.removeLayer(marker));
+                markers = {};
+                
+                // Add markers
+                cities.forEach(([name, coords]) => {
+                    addMarker(name, coords[0], coords[1]);
+                });
+                
+                // Update city list UI
+                updateCityList(cities);
+            } catch (error) {
+                console.error('Error loading cities:', error);
+            }
+        }
+
+        // Thêm marker lên bản đồ
+        function addMarker(name, lat, lng, isHighlight = false) {
+            const icon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="
+                    background: ${isHighlight ? '#2d6b3d' : '#fff'};
+                    width: 20px;
+                    height: 20px;
+                    border: 3px solid ${isHighlight ? '#fff' : '#2d6b3d'};
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: ${isHighlight ? '#fff' : '#2d6b3d'};
+                    font-weight: bold;
+                    font-size: 10px;
+                    font-family: 'Courier New', monospace;
+                ">●</div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+
+            const marker = L.marker([lat, lng], { icon: icon })
+                .bindPopup(`<div style="font-family: 'Courier New', monospace;">
+                    <strong>${name}</strong><br>
+                    Lat: ${lat}<br>
+                    Lng: ${lng}
+                </div>`)
+                .addTo(map);
+            
+            markers[name] = marker;
+            return marker;
+        }
+
+        // Update danh sách thành phố
+        function updateCityList(cities) {
+            const cityList = document.getElementById('city-list');
+            const cityCount = document.getElementById('city-count');
+            
+            cityCount.textContent = cities.length;
+            cityList.innerHTML = '';
+            
+            cities.forEach(([name, coords]) => {
+                const div = document.createElement('div');
+                div.className = 'city-item';
+                div.id = `city-${name}`;
+                div.innerHTML = `
+                    <div>
+                        <div class="city-name">${name}</div>
+                        <div class="city-coords">${coords[0].toFixed(4)}, ${coords[1].toFixed(4)}</div>
+                    </div>
+                    <button class="delete-btn" onclick="deleteCity('${name}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                cityList.appendChild(div);
+            });
+        }
+
+        // Thêm thành phố mới
+        async function addCity(name, lat, lng) {
+            try {
+                const response = await fetch('/api/cities', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, lat, lng })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    await loadCities();
+                }
+            } catch (error) {
+                console.error('Error adding city:', error);
+                alert('Lỗi khi thêm địa điểm!');
+            }
+        }
+
+        // Xóa thành phố
+        async function deleteCity(name) {
+            if (!confirm(`Bạn có chắc muốn xóa "${name}"?`)) return;
+            
+            try {
+                const response = await fetch(`/api/cities/${encodeURIComponent(name)}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    await loadCities();
+                    // Clear result
+                    document.getElementById('result-box').classList.remove('show');
+                }
+            } catch (error) {
+                console.error('Error deleting city:', error);
+                alert('Lỗi khi xóa địa điểm!');
+            }
+        }
+
+        // Giải bài toán TSP
+        async function solveTSP() {
+            const solveBtn = document.getElementById('solve-btn');
+            const statusMessage = document.getElementById('status-message');
+            
+            // Disable button
+            solveBtn.disabled = true;
+            solveBtn.innerHTML = '[PROCESSING...]';
+            
+            // Show status
+            statusMessage.textContent = '🔍 Đang tính toán ma trận khoảng cách...';
+            statusMessage.classList.add('show');
+            
+            // Hide old results
+            document.getElementById('result-section').style.display = 'none';
+            document.getElementById('calculation-section').style.display = 'none';
+            
+            // Clear all old layers (lines and labels)
+            map.eachLayer(function(layer) {
+                if (layer instanceof L.Polyline || (layer instanceof L.Marker && layer.options.icon && layer.options.icon.options.className === 'distance-label')) {
+                    map.removeLayer(layer);
+                }
+            });
+            
+            try {
+                // Start solving
+                const response = await fetch('/api/solve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update status
+                    statusMessage.textContent = '✅ Hoàn thành! Đang vẽ animation...';
+                    
+                    // Show results with animation
+                    await animateSolution(data);
+                    
+                    // Display final result
+                    displayResult(data);
+                    
+                    // Hide status after animation
+                    statusMessage.classList.remove('show');
+                } else {
+                    alert(data.error || 'Có lỗi xảy ra!');
+                }
+            } catch (error) {
+                console.error('Error solving TSP:', error);
+                alert('Lỗi khi giải bài toán!');
+            } finally {
+                // Re-enable button
+                solveBtn.disabled = false;
+                solveBtn.innerHTML = '[RUN] GIẢI BÀI TOÁN';
+                statusMessage.classList.remove('show');
+            }
+        }
+
+        // Animate giải pháp từng bước
+        async function animateSolution(data) {
+            const steps = data.steps;
+            const calculationSteps = document.getElementById('calculation-steps');
+            const calculationSection = document.getElementById('calculation-section');
+            
+            calculationSection.style.display = 'block';
+            calculationSteps.innerHTML = '';
+            
+            // Get city coordinates
+            const response = await fetch('/api/cities');
+            const cities = await response.json();
+            const cityMap = Object.fromEntries(cities);
+            
+            for (let i = 0; i < steps.length; i++) {
+                const step = steps[i];
+                
+                // Highlight current city in sidebar
+                document.querySelectorAll('.city-item').forEach(item => {
+                    item.classList.remove('highlighted');
+                });
+                
+                if (step.current) {
+                    const currentCityElem = document.getElementById(`city-${step.current}`);
+                    if (currentCityElem) {
+                        currentCityElem.classList.add('highlighted');
+                        currentCityElem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                }
+                
+                // Add calculation step to sidebar
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'step-item active';
+                stepDiv.id = `calc-step-${i}`;
+                
+                let stepHTML = `<div class="step-header">BƯỚC ${step.step}: ${step.current || 'Bắt đầu'}</div>`;
+                
+                if (step.candidates && step.candidates.length > 0) {
+                    stepHTML += '<div class="step-candidates">Đánh giá (Best-First Search):<br>';
+                    step.candidates.forEach(c => {
+                        const heuristic = c.heuristic !== undefined ? c.heuristic : 'N/A';
+                        stepHTML += `  • ${c.city}:<br>`;
+                        stepHTML += `    - g(n) = ${c.distance.toFixed(2)} km<br>`;
+                        if (heuristic !== 'N/A') {
+                            stepHTML += `    - h(n) = ${heuristic.toFixed(2)} km ⭐<br>`;
+                        }
+                    });
+                    stepHTML += '</div>';
+                    
+                    if (step.next) {
+                        const hInfo = step.heuristic !== undefined ? ` (h=${step.heuristic.toFixed(2)} km - nhỏ nhất)` : '';
+                        stepHTML += `<div class="step-chosen">→ CHỌN: ${step.next}${hInfo}<br>Chi phí: ${step.distance.toFixed(2)} km</div>`;
+                    }
+                } else if (step.next) {
+                    stepHTML += `<div class="step-chosen">→ Quay về: ${step.next} (${step.distance.toFixed(2)} km)</div>`;
+                }
+                
+                stepDiv.innerHTML = stepHTML;
+                calculationSteps.appendChild(stepDiv);
+                
+                // Scroll to latest step
+                stepDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                
+                // Highlight marker on map
+                await loadCities();
+                if (step.current_idx !== undefined && data.route[step.step] !== undefined) {
+                    const cityName = data.route[step.step];
+                    const city = cities.find(c => c[0] === cityName);
+                    
+                    if (city) {
+                        if (markers[cityName]) {
+                            map.removeLayer(markers[cityName]);
+                        }
+                        addMarker(cityName, city[1][0], city[1][1], true);
+                    }
+                }
+                
+                // Draw line from current to next
+                if (step.next && step.current) {
+                    const currentCoords = cityMap[step.current];
+                    const nextCoords = cityMap[step.next];
+                    
+                    if (currentCoords && nextCoords) {
+                        // Draw the new segment
+                        const newLine = L.polyline([
+                            [currentCoords[0], currentCoords[1]],
+                            [nextCoords[0], nextCoords[1]]
+                        ], {
+                            color: '#2d6b3d',
+                            weight: 3,
+                            opacity: 0.8
+                        }).addTo(map);
+                        
+                        // Add label for distance
+                        const midLat = (currentCoords[0] + nextCoords[0]) / 2;
+                        const midLng = (currentCoords[1] + nextCoords[1]) / 2;
+                        
+                        L.marker([midLat, midLng], {
+                            icon: L.divIcon({
+                                className: 'distance-label',
+                                html: `<div style="
+                                    background: #2d6b3d;
+                                    color: #fff;
+                                    padding: 3px 8px;
+                                    font-size: 11px;
+                                    font-weight: bold;
+                                    border: 1px solid #2d6b3d;
+                                    white-space: nowrap;
+                                ">${step.distance.toFixed(1)} km</div>`,
+                                iconSize: [60, 20]
+                            })
+                        }).addTo(map);
+                    }
+                }
+                
+                // Remove active class from previous step
+                if (i > 0) {
+                    const prevStep = document.getElementById(`calc-step-${i-1}`);
+                    if (prevStep) {
+                        prevStep.classList.remove('active');
+                    }
+                }
+                
+                // Wait for animation
+                await new Promise(resolve => setTimeout(resolve, 1200));
+            }
+            
+            // Remove active class from last step
+            const lastStep = document.getElementById(`calc-step-${steps.length-1}`);
+            if (lastStep) {
+                lastStep.classList.remove('active');
+            }
+        }
+
+        // Hiển thị kết quả cuối cùng
+        async function displayResult(data) {
+            const resultSection = document.getElementById('result-section');
+            const totalDistance = document.getElementById('total-distance');
+            const routeSteps = document.getElementById('route-steps');
+            
+            // Show result section
+            resultSection.style.display = 'block';
+            
+            // Display distance
+            totalDistance.textContent = `${data.total_distance.toFixed(2)} km`;
+            
+            // Display route
+            routeSteps.innerHTML = '';
+            data.route.forEach((city, index) => {
+                const div = document.createElement('div');
+                div.className = 'route-step';
+                div.innerHTML = `[${index + 1}] ${city}`;
+                routeSteps.appendChild(div);
+            });
+            
+            // Fit map to route
+            const response = await fetch('/api/cities');
+            const cities = await response.json();
+            const cityMap = Object.fromEntries(cities);
+            
+            const routeCoords = data.route.map(cityName => {
+                const coords = cityMap[cityName];
+                return [coords[0], coords[1]];
+            });
+            
+            map.fitBounds(L.latLngBounds(routeCoords), { padding: [50, 50] });
+        }
+
+        // Reset tất cả
+        async function resetAll() {
+            if (!confirm('Bạn có chắc muốn đặt lại tất cả?')) return;
+            
+            try {
+                const response = await fetch('/api/reset', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    // Clear all layers except base map
+                    map.eachLayer(function(layer) {
+                        if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+                            map.removeLayer(layer);
+                        }
+                    });
+                    
+                    routeLine = null;
+                    
+                    // Hide result sections
+                    document.getElementById('result-section').style.display = 'none';
+                    document.getElementById('calculation-section').style.display = 'none';
+                    
+                    // Reload cities
+                    await loadCities();
+                }
+            } catch (error) {
+                console.error('Error resetting:', error);
+                alert('Lỗi khi đặt lại!');
+            }
+        }
+
+        // Initialize when page loads
+        window.onload = function() {
+            initMap();
+        };
+    </script>
+</body>
+</html>
