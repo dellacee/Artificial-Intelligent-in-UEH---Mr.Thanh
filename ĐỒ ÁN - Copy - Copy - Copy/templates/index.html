@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSP Solver - Interactive Map</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-route"></i> TSP Solver</h1>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="scenario-btn active" id="scenario-1" onclick="switchScenario(1)" style="flex: 1; padding: 8px; background: #fff; color: #2d6b3d; border: 2px solid #2d6b3d; cursor: pointer; font-family: 'Courier New', monospace; font-size: 12px; font-weight: bold;">
+                        TÌNH HUỐNG 1
+                    </button>
+                    <button class="scenario-btn" id="scenario-2" onclick="switchScenario(2)" style="flex: 1; padding: 8px; background: #2d6b3d; color: #fff; border: 2px solid #2d6b3d; cursor: pointer; font-family: 'Courier New', monospace; font-size: 12px; font-weight: bold;">
+                        TÌNH HUỐNG 2
+                    </button>
+                </div>
+            </div>
+            
+            <div class="sidebar-content">
+                <div class="section">
+                    <div class="section-title">
+                        <i class="fas fa-map-marker-alt"></i>
+                        Địa điểm (<span id="city-count">10</span>)
+                    </div>
+                    <div class="city-list" id="city-list">
+                        <!-- Cities will be loaded here -->
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">
+                        <i class="fas fa-cog"></i>
+                        CHỌN THUẬT TOÁN
+                    </div>
+                    <select id="algorithm-select" style="width: 100%; padding: 10px; border: 2px solid #2d6b3d; font-family: 'Courier New', monospace; font-size: 13px; margin-bottom: 10px; background: #fff;">
+                        <option value="greedy">Greedy Best-First Search</option>
+                        <option value="best-first">Uniform Cost Search (UCS)</option>
+                        <option value="astar">A* Algorithm</option>
+                    </select>
+                    
+                    <button class="btn btn-primary" id="solve-btn" onclick="solveTSP()">
+                        GIẢI BÀI TOÁN
+                    </button>
+                    <button class="btn btn-primary" id="compare-btn" onclick="compareAllAlgorithms()">
+                        SO SÁNH THUẬT TOÁN
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetAll()">
+                        ĐẶT LẠI
+                    </button>
+                </div>
+
+                <div class="section" id="calculation-section" style="display: none;">
+                    <div class="section-title">QUÁ TRÌNH TÍNH TOÁN</div>
+                    <div class="calculation-steps" id="calculation-steps">
+                        <!-- Calculation steps will be shown here -->
+                    </div>
+                </div>
+
+                <div class="section" id="result-section" style="display: none;">
+                    <div class="section-title">KẾT QUẢ CUỐI CÙNG</div>
+                    <div class="distance" id="total-distance">0 km</div>
+                    <div class="route-steps" id="route-steps">
+                        <!-- Route steps will be shown here -->
+                    </div>
+                </div>
+
+                <div class="section" id="comparison-section" style="display: none;">
+                    <div class="section-title">KẾT QUẢ SO SÁNH</div>
+                    <div id="comparison-results" style="font-size: 11px;">
+                        <!-- Comparison results will be shown here -->
+                    </div>
+                    <div id="comparison-charts" style="margin-top: 10px;">
+                        <!-- Charts will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div class="status-message" id="status-message">Đang tính toán...</div>
+            
+            <div class="map-instructions">
+                [INFO] Click trên bản đồ để thêm địa điểm mới
+            </div>
+            
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Pass API URL from Flask to JavaScript -->
+    <script>
+        window.API_BASE_URL = '{{ api_base_url }}';
+    </script>
+    
+    <!-- Custom JavaScript -->
+    <script src="app.js"></script></script>
+</body>
+</html>
